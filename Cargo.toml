@@ -1,0 +1,18 @@
+[package]
+name = "cmsh"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.88"
+description = "P2P transport facade: addresses, streams, fallback and guarantees over the cvln and ctrn networks"
+license = "FSL-1.1-ALv2"
+repository = "https://github.com/corbet-libs/cmsh"
+readme = "README.md"
+publish = false
+include = ["Cargo.toml", "src/**", "README.md", "LICENSE.md"]
+
+[lib]
+crate-type = ["rlib"]
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
