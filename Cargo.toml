@@ -23,7 +23,7 @@ mock = ["tokio/io-util"]
 
 [dependencies]
 cmsh-api = { path = "cmsh-api" }
-cfbk = { git = "https://github.com/corbet-foss/cfbk", rev = "bc0a6dad90cb6f683e40b3fce37d898be3da32a4" }
+cfbk = { git = "https://github.com/corbet-foss/cfbk", branch = "main" }
 yamux = "0.14.1"
 futures = "0.3.31"
 bytes = "1.10"

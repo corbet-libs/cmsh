@@ -17,7 +17,7 @@ Write comments and documentation in English.
 - Current stable Rust, fmt, Clippy with warnings denied, real native tests and
   wasm32 build plus executed identical framing vectors on GitHub Actions.
 - Do not run Cargo on the workstation. Use standalone rustfmt if needed.
-- Pin first-party git dependencies by full revision; one revision per crate.
+- First-party git dependencies follow main; lock exactly one revision per crate.
 - Commit explicit paths in small steps; plain English imperative, no AI credit.
 - Pull with rebase before every push to main; never force push.
 - Never deploy, publish to registries or cause payments.
