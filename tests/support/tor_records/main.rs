@@ -311,9 +311,35 @@ async fn contract() {
     println!("fresh empty device restored ciphertext and opened it through read capability");
     // Bounded real eviction, not a retention/population measurement: each test
     // store was configured with capacity one. No store mutation bypasses its API.
-    let unrelated = Descriptor::create(&Schema::dflt(1).unwrap(), &key(103)).unwrap();
-    for store in &stores[..4] {
-        store.create(&unrelated).await.unwrap();
+    let pressure_owner = key(103);
+    let unrelated = Descriptor::create(&Schema::dflt(1).unwrap(), &pressure_owner).unwrap();
+    let pressure_cipher = EncryptionKey::from_bytes([104; 32]);
+    let nonce = [105; 24]; // Single use under an independent public fixture key.
+    let pressure = cdht::SignedValue::sign_with_nonce(
+        &unrelated.owner,
+        0,
+        0,
+        pressure_cipher
+            .crypt(&nonce, b"bounded eviction record")
+            .unwrap()
+            .to_vec(),
+        Some(nonce),
+        &pressure_owner,
+    )
+    .unwrap();
+    for (store, node) in stores[..4].iter().zip(&holders[..4]) {
+        assert_eq!(
+            cdht::Network::set(
+                returning.backend().network(),
+                node,
+                &unrelated,
+                0,
+                &pressure
+            )
+            .await
+            .unwrap(),
+            cdht::SetOutcome::Accepted
+        );
         assert!(store.descriptor(&locator).await.unwrap().is_none());
         assert_eq!(store.usage().2, 1);
     }
