@@ -17,7 +17,9 @@ measurement. Expensive population/churn work is a separate gate.
 The explicit fixture roster supplies known node keys and observed onion endpoints.
 It does **not** implement production signed NodeInfo registration, authenticated
 bootstrap or iterative discovery. Keys/read capabilities use public test seeds;
-this is not a passkey or membership recovery ceremony. No production DHT capability
+node, anonymous watcher and record-owner keys are distinct. Watch requests use
+the separate watcher capability and gain no member quota. This is not a passkey
+or membership recovery ceremony. No production DHT capability
 is advertised. Public Tor, browser DHT and retention need independent evidence.
 
 The disposable signed Tor network and tools run directly from the exact resolved

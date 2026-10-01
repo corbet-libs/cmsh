@@ -95,7 +95,13 @@ fn client(
 ) -> Dht<NetworkBackend<Wire, TestVerifier>, TestVerifier> {
     Dht::new(
         NetworkBackend::new(
-            Wire::new(p.mesh.clone(), p.signer.clone(), roster, holders),
+            Wire::new(
+                p.mesh.clone(),
+                p.signer.clone(),
+                p.watcher.clone(),
+                roster,
+                holders,
+            ),
             TestVerifier,
         ),
         TestVerifier,
