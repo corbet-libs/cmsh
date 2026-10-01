@@ -30,6 +30,7 @@ fn spawn(f: cmsh::BoxFuture<'static, ()>) {
 }
 struct ByteNetwork {
     online: AtomicBool,
+    dial_failure: Mutex<Option<ctrn::ErrorKind>>,
     here: ctrn::Address,
     there: ctrn::Address,
     incoming: Arc<Mutex<mpsc::Receiver<ctrn::BoxStream>>>,
@@ -74,6 +75,9 @@ impl ctrn::Network for ByteNetwork {
         }))
     }
     async fn dial(&self, to: &ctrn::OnionEndpoint) -> Result<ctrn::BoxStream, ctrn::Error> {
+        if let Some(kind) = *self.dial_failure.lock().await {
+            return Err(ctrn::Error::new(kind, "external transport refusal"));
+        }
         if to.address() != self.there {
             return Err(ctrn::Error::new(
                 ctrn::ErrorKind::Unreachable,
@@ -136,20 +140,19 @@ async fn mesh_tor_port_uses_bounded_messages_and_original_one_use_reply() {
     let (to_a, from_b) = mpsc::channel(2);
     let (to_b, from_a) = mpsc::channel(2);
     let a_address = a.clone();
-    let a = adapter(
-        Arc::new(ByteNetwork {
-            online: AtomicBool::new(false),
-            here: a.clone(),
-            there: b.clone(),
-            incoming: Arc::new(Mutex::new(from_b)),
-            outgoing: to_b,
-        }),
-        1,
-    )
-    .await;
+    let a_network = Arc::new(ByteNetwork {
+        online: AtomicBool::new(false),
+        dial_failure: Mutex::new(None),
+        here: a.clone(),
+        there: b.clone(),
+        incoming: Arc::new(Mutex::new(from_b)),
+        outgoing: to_b,
+    });
+    let a = adapter(a_network.clone(), 1).await;
     let b = adapter(
         Arc::new(ByteNetwork {
             online: AtomicBool::new(false),
+            dial_failure: Mutex::new(None),
             here: b,
             there: a_address,
             incoming: Arc::new(Mutex::new(from_a)),
@@ -199,4 +202,28 @@ async fn mesh_tor_port_uses_bounded_messages_and_original_one_use_reply() {
         a.app_message(&malformed, b"x").await.unwrap_err().kind(),
         cmsh::ErrorKind::InvalidAddress
     );
+    for (external, expected) in [
+        (ctrn::ErrorKind::Unsupported, cmsh::ErrorKind::Unsupported),
+        (ctrn::ErrorKind::Network, cmsh::ErrorKind::Network),
+        (ctrn::ErrorKind::Unreachable, cmsh::ErrorKind::Unreachable),
+        (ctrn::ErrorKind::Timeout, cmsh::ErrorKind::Timeout),
+        (ctrn::ErrorKind::Closed, cmsh::ErrorKind::Closed),
+        (ctrn::ErrorKind::Limit, cmsh::ErrorKind::Limit),
+        (ctrn::ErrorKind::Protocol, cmsh::ErrorKind::Protocol),
+    ] {
+        *a_network.dial_failure.lock().await = Some(external);
+        let error = a
+            .app_message(&listening.addresses()[0], b"secret payload")
+            .await
+            .unwrap_err();
+        assert_eq!(error.kind(), expected);
+        assert_eq!(error.context(), "Tor message transport failed");
+        assert!(!error.to_string().contains("secret payload"));
+        assert!(!error.to_string().contains("external transport refusal"));
+    }
+    *a_network.dial_failure.lock().await = Some(ctrn::ErrorKind::Network);
+    assert!(matches!(ma.app_call(listening.addresses(), b"once").await,
+        Err(cmsh::MeshError::Backend(error)) if error.kind() == cmsh::ErrorKind::Network));
+    assert_eq!(ma.status()[0].health, cmsh::Health::Failed);
+    assert!(ma.active().is_err());
 }
