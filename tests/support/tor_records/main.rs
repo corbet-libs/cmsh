@@ -31,6 +31,7 @@ struct Participant {
     node: Arc<Node>,
     mesh: Arc<Mesh>,
     signer: Arc<TestKey>,
+    watcher: Arc<TestKey>,
     listener: Option<Listening>,
 }
 async fn participant(base: &Path, index: u8, config: &serde_json::Value) -> Participant {
@@ -83,6 +84,7 @@ async fn participant(base: &Path, index: u8, config: &serde_json::Value) -> Part
         node,
         mesh,
         signer: Arc::new(key(index)),
+        watcher: Arc::new(key(index + 30)),
         listener: Some(listener),
     }
 }
@@ -109,8 +111,8 @@ async fn contract() {
     let mut participants =
         futures::future::join_all((1..=8).map(|index| participant(state.path(), index, &config)))
             .await;
-    let roster: Arc<Roster> = Arc::new(
-        participants
+    let roster = Arc::new(Roster {
+        nodes: participants
             .iter()
             .map(|p| {
                 (
@@ -119,8 +121,18 @@ async fn contract() {
                 )
             })
             .collect(),
-    );
-    assert_eq!(roster.len(), 8);
+        watchers: participants
+            .iter()
+            .map(|p| {
+                (
+                    p.watcher.public_key(),
+                    p.listener.as_ref().unwrap().addresses().to_vec(),
+                )
+            })
+            .collect(),
+    });
+    assert_eq!(roster.nodes.len(), 8);
+    assert_eq!(roster.watchers.len(), 8);
     let holders: Vec<_> = participants[..5]
         .iter()
         .map(|p| p.signer.public_key())
@@ -246,6 +258,7 @@ async fn contract() {
             Wire::new(
                 participants[6].mesh.clone(),
                 participants[6].signer.clone(),
+                participants[6].watcher.clone(),
                 roster.clone(),
                 holders.clone(),
             ),
@@ -313,6 +326,7 @@ async fn contract() {
             Wire::new(
                 participants[7].mesh.clone(),
                 participants[7].signer.clone(),
+                participants[7].watcher.clone(),
                 roster.clone(),
                 holders.clone(),
             ),

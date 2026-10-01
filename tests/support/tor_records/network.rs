@@ -17,10 +17,14 @@ use std::{
     time::Instant,
 };
 
-pub type Roster = BTreeMap<NodeId, Vec<Address>>;
+pub struct Roster {
+    pub nodes: BTreeMap<NodeId, Vec<Address>>,
+    pub watchers: BTreeMap<NodeId, Vec<Address>>,
+}
 pub struct Wire {
     pub mesh: Arc<Mesh>,
     pub signer: Arc<TestKey>,
+    pub watcher: Arc<TestKey>,
     pub roster: Arc<Roster>,
     pub stores: Vec<NodeId>,
     pub received: Arc<Mutex<BTreeMap<(NodeId, WatchId), Vec<Change>>>>,
@@ -31,12 +35,14 @@ impl Wire {
     pub fn new(
         mesh: Arc<Mesh>,
         signer: Arc<TestKey>,
+        watcher: Arc<TestKey>,
         roster: Arc<Roster>,
         stores: Vec<NodeId>,
     ) -> Self {
         Self {
             mesh,
             signer,
+            watcher,
             roster,
             stores,
             received: Arc::new(Mutex::new(BTreeMap::new())),
@@ -50,20 +56,25 @@ impl Wire {
         query: Query,
         descriptor: Option<&Descriptor>,
     ) -> Result<Response, Error> {
+        let signer = if matches!(&query, Query::Watch { .. }) {
+            self.watcher.as_ref()
+        } else {
+            self.signer.as_ref()
+        };
         let question = Question::new(&query)?;
-        let signed = question.sign(node, self.signer.as_ref())?;
-        let address = self.roster.get(node).ok_or(Error::Unavailable)?;
+        let signed = question.sign(node, signer)?;
+        let address = self.roster.nodes.get(node).ok_or(Error::Unavailable)?;
         let reply = self
             .mesh
             .app_call(address, signed.as_bytes())
             .await
             .map_err(|_| Error::Unavailable)?;
-        let reply = SignedOperation::verify(reply, &self.signer.public_key(), node, &TestVerifier)?;
+        let reply = SignedOperation::verify(reply, &signer.public_key(), node, &TestVerifier)?;
         question.answer(&reply, descriptor, &TestVerifier)
     }
     pub fn receive(&self, listener: Listening) -> tokio::task::JoinHandle<()> {
         let roster = self.roster.clone();
-        let public = self.signer.public_key();
+        let public = self.watcher.public_key();
         let watches = self.watches.clone();
         let received = self.received.clone();
         tokio::spawn(async move {
@@ -71,7 +82,7 @@ impl Wire {
                 let Incoming::Message { payload, .. } = event else {
                     continue;
                 };
-                let operation = authenticate(payload, &public, &roster)
+                let operation = authenticate(payload, &public, roster.nodes.keys())
                     .expect("authenticated fixture storage node");
                 let (_, hint) = rpc::value_changed(&operation).unwrap();
                 let id = (*operation.signer(), WatchId(hint.watch_id));
@@ -241,19 +252,17 @@ impl Network for Wire {
             .unwrap_or_default())
     }
 }
-fn authenticate(
+fn authenticate<'a>(
     bytes: Vec<u8>,
     destination: &NodeId,
-    roster: &Roster,
+    mut keys: impl Iterator<Item = &'a NodeId>,
 ) -> Result<SignedOperation, Error> {
     // Identities/endpoints are independently supplied by fixture setup. Trying
     // this bounded roster is test glue, not a production peer directory.
-    roster
-        .keys()
-        .find_map(|key| {
-            SignedOperation::verify(bytes.clone(), destination, key, &TestVerifier).ok()
-        })
-        .ok_or(Error::BadSignature)
+    keys.find_map(|key| {
+        SignedOperation::verify(bytes.clone(), destination, key, &TestVerifier).ok()
+    })
+    .ok_or(Error::BadSignature)
 }
 pub fn serve(
     mesh: Arc<Mesh>,
@@ -270,8 +279,21 @@ pub fn serve(
                 continue;
             };
             store.advance_to(started.elapsed().as_millis() as u64);
-            let request = authenticate(payload, &signer.public_key(), &roster).unwrap();
+            let request = authenticate(
+                payload,
+                &signer.public_key(),
+                roster.nodes.keys().chain(roster.watchers.keys()),
+            )
+            .unwrap();
             let (_, query) = rpc::query(&request).unwrap();
+            // Distinct anonymous watcher capability; it never becomes a node or
+            // gains an authenticated member watch quota in this fixture.
+            if matches!(&query, Query::Watch { .. }) {
+                assert!(roster.watchers.contains_key(request.signer()));
+                assert!(!roster.nodes.contains_key(request.signer()));
+            } else {
+                assert!(roster.nodes.contains_key(request.signer()));
+            }
             let mut changed_key = None;
             let response = match query {
                 Query::Get {
@@ -375,7 +397,7 @@ pub fn serve(
                         .unwrap()
                         .sign(watcher, signer.as_ref())
                         .unwrap();
-                    mesh.app_message(roster.get(watcher).unwrap(), statement.as_bytes())
+                    mesh.app_message(roster.watchers.get(watcher).unwrap(), statement.as_bytes())
                         .await
                         .unwrap();
                 }
