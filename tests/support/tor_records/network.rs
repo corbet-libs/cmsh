@@ -2,9 +2,8 @@
 //! test setup, never production discovery or an authenticated NodeInfo format.
 use super::crypto::{TestKey, TestVerifier};
 use cdht::{
-    Backend, Change, Descriptor, Error, LocalBackend, Network, RecordKey, SetOutcome, SignedValue,
-    Signer, WatchId,
-    network::NodeId,
+    Backend, Change, Descriptor, Error, LocalBackend, Network, NodeId, RecordKey, SetOutcome,
+    SignedValue, Signer, WatchId,
     rpc::{
         self, Answer, ChangeHint, Query, Question, Response, SignedOperation, Statement,
         SubkeyRanges,

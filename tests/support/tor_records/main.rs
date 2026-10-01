@@ -9,7 +9,7 @@ use cdht::{
 use cmsh::{Listening, Mesh};
 use crypto::{TestKey, TestVerifier, key};
 use ctrn::{
-    Backend as _, Node, Scope,
+    Node, Scope,
     arti::{ArtiNetwork, Directories, Identity, TokioClock},
 };
 use network::{Roster, Wire};
