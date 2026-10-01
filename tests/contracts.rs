@@ -407,7 +407,7 @@ async fn original_call_and_reply_bounds_are_enforced_independently() {
             panic!("call")
         };
         assert_eq!(
-            reply.send(&[0; 1025]).await.unwrap_err().kind(),
+            reply.send(&[0; 2]).await.unwrap_err().kind(),
             ErrorKind::Limit
         );
     };

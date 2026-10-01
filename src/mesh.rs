@@ -279,7 +279,7 @@ impl Mesh {
                                     Incoming::Call {
                                         backend: scheme.clone(),
                                         payload,
-                                        reply,
+                                        reply: reply.limit_to(maximum),
                                     }
                                 }
                                 Ok(_) => {
