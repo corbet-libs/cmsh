@@ -16,6 +16,8 @@ use std::{
     time::Instant,
 };
 
+type ChangeQueue = BTreeMap<(NodeId, WatchId), Vec<Change>>;
+
 pub struct Roster {
     pub nodes: BTreeMap<NodeId, Vec<Address>>,
     pub watchers: BTreeMap<NodeId, Vec<Address>>,
@@ -26,7 +28,7 @@ pub struct Wire {
     pub watcher: Arc<TestKey>,
     pub roster: Arc<Roster>,
     pub stores: Vec<NodeId>,
-    pub received: Arc<Mutex<BTreeMap<(NodeId, WatchId), Vec<Change>>>>,
+    pub received: Arc<Mutex<ChangeQueue>>,
     watches: Arc<Mutex<BTreeMap<(NodeId, WatchId), RecordKey>>>,
     started: Instant,
 }

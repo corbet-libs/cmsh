@@ -447,7 +447,7 @@ dependencies = [
 [[package]]
 name = "cdht"
 version = "0.0.0"
-source = "git+https://github.com/corbet-foss/cdht?branch=main#15ab1156c2c50e8f778a049bc349758c66e7fbc2"
+source = "git+https://github.com/corbet-foss/cdht?branch=main#9f44ffb779f296bd9162fceeee8aa9f62b1a9a66"
 dependencies = [
  "blake3",
  "capnp",
