@@ -102,7 +102,9 @@ mod tests {
 
     #[test]
     fn scheme_validation() {
-        assert!(Scheme::new("tor").is_ok());
+        let tor = Scheme::new("tor").unwrap();
+        assert_eq!(tor.as_str(), "tor");
+        assert_eq!(format!("{tor:?}"), "Scheme(tor)");
         assert!(Scheme::new("veilid").is_ok());
         assert!(Scheme::new("i2p-sam3").is_ok());
         for bad in [
@@ -125,6 +127,7 @@ mod tests {
         assert!(Address::new(tor.clone(), vec![0; MAX_ADDRESS_BYTES + 1]).is_err());
         let address = Address::new(tor.clone(), b"x".to_vec()).unwrap();
         assert_eq!(address.expect_scheme(&tor).unwrap(), b"x");
+        assert_eq!(address.bytes(), b"x");
         assert_eq!(
             address.expect_scheme(&veilid).unwrap_err().kind(),
             ErrorKind::Unsupported

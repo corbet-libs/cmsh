@@ -124,5 +124,11 @@ mod tests {
                 .contains(&Property::Anonymous)
         );
         assert!(Policy::unrestricted().requirements().is_empty());
+        assert!(
+            Policy::unrestricted()
+                .require(Property::Dht)
+                .requirements()
+                .contains(&Property::Dht)
+        );
     }
 }
