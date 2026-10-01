@@ -4,6 +4,7 @@ permissions:
 concurrency:
   group: ci
   cancel-in-progress: false
+  queue: max
 jobs:
   resolve:
     runs-on: ubuntu-latest
