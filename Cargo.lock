@@ -76,7 +76,7 @@ checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
 [[package]]
 name = "cfry"
 version = "0.1.0"
-source = "git+https://github.com/corbet-foss/cfry?branch=main#b4c0cc9dc3c5c70881ccc07c07b9bf2a3cbd52e0"
+source = "git+https://github.com/corbet-foss/cfry?branch=main#219611e3dd0c50bbc284bff79f95651453524564"
 dependencies = [
  "bytes",
  "futures",
@@ -134,7 +134,7 @@ dependencies = [
 [[package]]
 name = "ctrn"
 version = "0.1.0"
-source = "git+https://github.com/corbet-foss/ctrn?branch=main#42db0fa0c4b9be71e3f4224ec90c98bb81668b5d"
+source = "git+https://github.com/corbet-foss/ctrn?branch=main#1995ba4b8d1f61b2ca94325f90d33b46614fb78a"
 dependencies = [
  "async-trait",
  "cfry",
