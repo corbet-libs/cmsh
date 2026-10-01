@@ -93,7 +93,7 @@ impl ctrn::Network for ByteNetwork {
         Ok(Box::new(a.compat()))
     }
 }
-async fn adapter(network: Arc<ByteNetwork>, scope: u8) -> Arc<cmsh::Tor> {
+async fn adapter(network: Arc<ByteNetwork>, scope: u8) -> (Arc<ctrn::Node>, Arc<cmsh::Tor>) {
     let clock: Arc<dyn ctrn::Clock> = Arc::new(Time);
     let node = Arc::new(
         ctrn::Node::new(
@@ -109,9 +109,9 @@ async fn adapter(network: Arc<ByteNetwork>, scope: u8) -> Arc<cmsh::Tor> {
         .unwrap(),
     );
     node.start().await.unwrap();
-    Arc::new(cmsh::Tor(
+    let transport = Arc::new(cmsh::Tor(
         ctrn::messages::Messages::new(
-            node,
+            node.clone(),
             Arc::new(spawn),
             clock,
             ctrn::MessageLimits {
@@ -120,7 +120,8 @@ async fn adapter(network: Arc<ByteNetwork>, scope: u8) -> Arc<cmsh::Tor> {
             },
         )
         .unwrap(),
-    ))
+    ));
+    (node, transport)
 }
 #[cfg_attr(not(target_arch = "wasm32"), tokio::test)]
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
@@ -148,8 +149,8 @@ async fn mesh_tor_port_uses_bounded_messages_and_original_one_use_reply() {
         incoming: Arc::new(Mutex::new(from_b)),
         outgoing: to_b,
     });
-    let a = adapter(a_network.clone(), 1).await;
-    let b = adapter(
+    let (a_node, a) = adapter(a_network.clone(), 1).await;
+    let (b_node, b) = adapter(
         Arc::new(ByteNetwork {
             online: AtomicBool::new(false),
             dial_failure: Mutex::new(None),
@@ -202,6 +203,24 @@ async fn mesh_tor_port_uses_bounded_messages_and_original_one_use_reply() {
         a.app_message(&malformed, b"x").await.unwrap_err().kind(),
         cmsh::ErrorKind::InvalidAddress
     );
+    let send = async {
+        assert!(
+            ma.app_call(listening.addresses(), b"lost reply")
+                .await
+                .is_err()
+        );
+    };
+    let receive = async {
+        let Incoming::Call { reply, .. } = listening.next().await.unwrap() else {
+            panic!("call")
+        };
+        b_node.stop();
+        assert_eq!(
+            reply.send(b"response").await.unwrap_err().kind(),
+            cmsh::ErrorKind::Closed
+        );
+    };
+    futures::join!(send, receive);
     for (external, expected) in [
         (ctrn::ErrorKind::Unsupported, cmsh::ErrorKind::Unsupported),
         (ctrn::ErrorKind::Network, cmsh::ErrorKind::Network),
@@ -226,4 +245,5 @@ async fn mesh_tor_port_uses_bounded_messages_and_original_one_use_reply() {
         Err(cmsh::MeshError::Backend(error)) if error.kind() == cmsh::ErrorKind::Network));
     assert_eq!(ma.status()[0].health, cmsh::Health::Failed);
     assert!(ma.active().is_err());
+    a_node.stop();
 }
