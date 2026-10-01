@@ -65,7 +65,7 @@ dependencies = [
 [[package]]
 name = "cfbk"
 version = "0.0.0"
-source = "git+https://github.com/corbet-foss/cfbk?branch=main#ea5efe4418607c7e2efc91f0ef806974e1cf3444"
+source = "git+https://github.com/corbet-foss/cfbk?branch=main#3a0c2dd56a2d7d3432a2f4d5ab16a83d3f95992a"
 
 [[package]]
 name = "cfg-if"
