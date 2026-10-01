@@ -16,7 +16,11 @@ model, not a statement that anonymity systems are equivalent. Listening does
 not try failed backends. Each listener emits its terminal event once. Dropping
 or closing `Listening` cancels idle accepts and drops every owned listener.
 
-`Session` supplies bounded yamux multiplexing (64 streams; 16 queued accepts).
+`Session` supplies bounded yamux multiplexing (64 streams, 64 pending commands,
+16 queued accepts). `Connection::next_event` / `Session::next_event` emits Closed
+once across cloned handles when the driver exits, including cancellation or
+backend loss. Cancelled event waits leave the notification available. No event
+is a delivery acknowledgement.
 Streams is a module in this repository pending its final library name.
 `streams::FramedStream::open(io, limits, clock)`, `send_frame`, `next_frame`,
 `finish`, `cancel` operate on `futures-io::AsyncRead + AsyncWrite`. The injected
@@ -45,3 +49,9 @@ partial writes, oversized lengths, every truncated prefix/payload, cancellation,
 slow peers, exact deadlines, clock regression and closure. Selection tests use
 real in-memory byte streams with controlled faults and real cfbk logic. Real
 Tor composition tests live with the ctrn adapter and use this same Mesh API.
+
+`browser/streams.mjs` provides the same framing over the neutral JavaScript
+`read(maximum, timeoutMs)`, `write(bytes, timeoutMs)`, `close()` port. The provider
+must honor its deadline and cancel pending operations on close. One read and one
+write can run concurrently; its Rust/Wasm FrameCodec is the native codec. No Tor
+object, endpoint or dependency enters this interface.

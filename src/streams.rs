@@ -30,8 +30,6 @@ pub struct Limits {
 pub enum State {
     /// Ready for a frame.
     Open,
-    /// Flushing and closing the write half.
-    Draining,
     /// Clean EOF or completed finish.
     Closed,
     /// Cancelled, malformed, expired or broken; cannot be reused.

@@ -476,6 +476,11 @@ impl Connection {
         self.session.accept().await
     }
 
+    /// Terminal event once across cloned connections. Never a delivery receipt.
+    pub async fn next_event(&self) -> Option<crate::SessionEvent> {
+        self.session.next_event().await
+    }
+
     /// Close the connection (all substreams).
     pub async fn close(&self) -> Result<(), Error> {
         self.session.close().await

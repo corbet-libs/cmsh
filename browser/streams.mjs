@@ -59,6 +59,7 @@ export class FramedStream {
   #end(state) {
     if (this.#state === 'Closed' || this.#state === 'Failed') return;
     this.#state = state; this.#frames = [];
-    try { this.#io.close(); } finally { this.#codec.free(); }
+    try { this.#io.close(); } catch { /* dependency details stay private */ }
+    this.#codec.free();
   }
 }

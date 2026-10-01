@@ -46,7 +46,7 @@ pub use mesh::{
     MeshError,
 };
 pub use property::{Policy, Property, properties};
-pub use session::{MAX_SUBSTREAMS, Role, Session, Substream};
+pub use session::{MAX_SUBSTREAMS, Role, Session, SessionEvent, Substream};
 
 use std::future::Future;
 use std::pin::Pin;
