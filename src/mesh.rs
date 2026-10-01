@@ -338,7 +338,8 @@ pub struct Listening {
     pumps: Vec<AbortHandle>,
 }
 impl Listening {
-    /// Addresses currently published by this handle.
+    /// Initially published addresses. Withdraw a network's address when its
+    /// [`Incoming::ListenerClosed`] event arrives; `close` clears the whole list.
     pub fn addresses(&self) -> &[Address] {
         &self.addresses
     }
