@@ -1,3 +1,4 @@
+//! Identical native and wasm framing lifecycle vectors.
 use cmsh::{
     BoxFuture,
     frame::FrameCodec,
