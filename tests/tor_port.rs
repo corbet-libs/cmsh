@@ -89,7 +89,7 @@ impl ctrn::Network for ByteNetwork {
         Ok(Box::new(a.compat()))
     }
 }
-async fn adapter(network: Arc<ByteNetwork>, scope: u8) -> Arc<cmsh::tor::Tor> {
+async fn adapter(network: Arc<ByteNetwork>, scope: u8) -> Arc<cmsh::Tor> {
     let clock: Arc<dyn ctrn::Clock> = Arc::new(Time);
     let node = Arc::new(
         ctrn::Node::new(
@@ -105,7 +105,7 @@ async fn adapter(network: Arc<ByteNetwork>, scope: u8) -> Arc<cmsh::tor::Tor> {
         .unwrap(),
     );
     node.start().await.unwrap();
-    Arc::new(cmsh::tor::Tor(
+    Arc::new(cmsh::Tor(
         ctrn::messages::Messages::new(
             node,
             Arc::new(spawn),
