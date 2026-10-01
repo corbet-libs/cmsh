@@ -27,11 +27,12 @@ mod mesh;
 pub mod mock;
 mod property;
 mod session;
+pub mod streams;
 
 #[cfg(target_arch = "wasm32")]
 pub mod browser;
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests;
 
 pub use cfbk::{Health, Switch, Unavailable};
